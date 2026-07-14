@@ -1,0 +1,38 @@
+{
+  "task": "Masaüstü kişisel finans uygulaması 'Harcama & Bütçe Takip' - Python + PySide6, SQLite veri katmanı. Özellikler: işlem ekleme (tutar/kategori/tarih/not), aylık özet & kategori grafiği, bütçe limiti & aşım uyarısı, filtre/arama, CSV içe/dışa aktarma. Ana zorluk: tarih bazlı gruplama ve grafik verisinin doğru hesaplanması.",
+  "tier": 2,
+  "stage": "verified_pass",
+  "brief": {
+    "goal": "Python + PySide6 masaüstü kişisel finans/bütçe takip uygulaması, SQLite backend ile.",
+    "areas": ["db (SQLite schema + CRUD + aggregation)", "UI (main window, transaction dialog)", "chart (matplotlib embed)", "budget limit & uyarı", "filtre/arama", "CSV içe/dışa aktarma", "tests"],
+    "constraints": ["Windows, Python 3.14.5 kurulu", "proje klasörü boş, henüz git repo değil", "kapsam dışı: tekrarlayan işlemler, çoklu hesap, tasarruf hedefi"],
+    "acceptance_criteria": [
+      "İşlem ekle/düzenle/sil (tutar, kategori, tarih, not) SQLite'da kalıcı",
+      "Aylık özet + kategori grafiği (matplotlib) - gruplama/toplam doğru hesaplanmış ve test edilmiş",
+      "Bütçe limiti tanımlanabiliyor, aşıldığında uyarı gösteriliyor",
+      "Kategori/tarih aralığı/metin ile filtreleme çalışıyor",
+      "CSV dışa aktarma + içe aktarma round-trip doğru"
+    ]
+  },
+  "technical_decisions": {
+    "stack_confirmed": "PySide6 6.11.1 + matplotlib 3.11.0 installed and verified working on Python 3.14.5 in this env, no blockers",
+    "amount_storage": "INTEGER minor units (kuruş) to avoid float rounding drift in sums - researcher recommendation, adopted",
+    "date_storage": "ISO-8601 TEXT (YYYY-MM-DD), date-only, local time, no timezone handling needed for a personal tracker - adopted",
+    "chart_embed": "matplotlib backend_qtagg, explicit Figure object (not pyplot), canvas.draw_idle() + ax.clear() on refresh, os.environ['QT_API']='pyside6' defensively before backend import",
+    "aggregation_sql": "strftime('%Y-%m', date) GROUP BY month, category; validate date format at insert time to avoid rows silently dropping from GROUP BY; fill zero-transaction months in Python if chart needs continuous axis",
+    "packaging": "out of scope, run via python main.py; note PyInstaller/pyside6-deploy in docs for later"
+  },
+  "resource_plan": {
+    "researcher_orientation": "skipped - proje klasörü boş, mevcut kod/konvansiyon yok",
+    "researcher_task": "dispatched - web odaklı: PySide6+matplotlib embed pattern, SQLite tarih bazlı gruplama best practice",
+    "tech_lead_orchestrator": "skipped - modüller birbirine sıkı bağımlı (ortak şema/model), gerçek paralel iş bölümü yok, tek thread implementer yeterli",
+    "implementer": "tek dispatch, tüm uygulama",
+    "code_reviewer": "full review - veri doğruluğu (aggregation) kritik risk alanı",
+    "qa_tester": "full - aggregation/tarih mantığı için unit test yazılacak + uygulama başlatma smoke test",
+    "performance_flag": false,
+    "model_deviations": "none"
+  },
+  "fix_round": 1,
+  "subtasks": null,
+  "pre_change_sha": "no prior commit - first implementation, no git repo yet"
+}

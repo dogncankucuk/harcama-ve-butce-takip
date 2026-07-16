@@ -1,7 +1,7 @@
 {
   "task": "Masaüstü kişisel finans uygulaması 'Harcama & Bütçe Takip' - Python + PySide6, SQLite veri katmanı. Özellikler: işlem ekleme (tutar/kategori/tarih/not), aylık özet & kategori grafiği, bütçe limiti & aşım uyarısı, filtre/arama, CSV içe/dışa aktarma. Ana zorluk: tarih bazlı gruplama ve grafik verisinin doğru hesaplanması.",
   "tier": 2,
-  "stage": "verified_pass",
+  "stage": "done",
   "brief": {
     "goal": "Python + PySide6 masaüstü kişisel finans/bütçe takip uygulaması, SQLite backend ile.",
     "areas": ["db (SQLite schema + CRUD + aggregation)", "UI (main window, transaction dialog)", "chart (matplotlib embed)", "budget limit & uyarı", "filtre/arama", "CSV içe/dışa aktarma", "tests"],

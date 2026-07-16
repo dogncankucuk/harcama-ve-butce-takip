@@ -1,0 +1,11 @@
+amount_minor,category,date,note,type
+1500000,Maaş,2026-07-01,Temmuz maaşı,gelir
+25000,Yemek,2026-07-02,Öğle yemeği,gider
+12000,Ulaşım,2026-07-02,Otobüs kartı yükleme,gider
+45000,Market,2026-07-03,Haftalık market alışverişi,gider
+30000,Eğlence,2026-07-05,Sinema bileti,gider
+200000,Freelance,2026-07-06,Yan proje ödemesi,gelir
+15000,Yemek,2026-07-07,Kahve,gider
+80000,Fatura,2026-07-10,Elektrik faturası,gider
+60000,Fatura,2026-07-10,İnternet faturası,gider
+50000,Giyim,2026-07-12,Tişört,gider

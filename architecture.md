@@ -1,81 +1,84 @@
-# Architecture
+# Mimari
 
-## Entry point
+## Giriş noktası
 
-`main.py` creates the `QApplication`, opens/creates `harcama.db` (SQLite
-file next to the script) via `db.connect()`, and shows `MainWindow`.
+`main.py`, `QApplication`'ı oluşturur, `db.connect()` üzerinden
+`harcama.db`'yi (script ile aynı klasördeki SQLite dosyası) açar/oluşturur
+ve `MainWindow`'u gösterir.
 
-## Module layout
+## Modül yapısı
 
 ```
-main.py                    entry point
-models.py                  Transaction dataclass (shared data shape)
-db.py                       SQLite schema, validation, CRUD, aggregation
-csv_io.py                  CSV export/import (built on db.py)
-ui/main_window.py          main window: table, filters, budget panel, charts
-ui/transaction_dialog.py   add/edit transaction modal
-tests/                     pytest suite (db, aggregation, csv_io)
+main.py                    giriş noktası
+models.py                  Transaction veri sınıfı (ortak veri şekli)
+db.py                       SQLite şeması, doğrulama, CRUD, toplama
+csv_io.py                  CSV dışa/içe aktarma (db.py üzerine kurulu)
+ui/main_window.py          ana pencere: tablo, filtreler, bütçe paneli, grafikler
+ui/transaction_dialog.py   ekleme/düzenleme işlem modalı
+tests/                     pytest paketi (db, aggregation, csv_io)
 ```
 
-Dependencies flow one direction: `ui/` depends on `db.py` and `csv_io.py`;
-`csv_io.py` depends on `db.py`; both depend on `models.py`. The UI never
-talks to SQLite directly — all reads/writes go through `db.py`'s functions,
-so validation (date format, positive amounts, transaction type) is enforced
-in one place regardless of caller (UI, CSV import, or tests).
+Bağımlılıklar tek yönde akar: `ui/`, `db.py` ve `csv_io.py`'ye bağımlıdır;
+`csv_io.py`, `db.py`'ye bağımlıdır; ikisi de `models.py`'ye bağımlıdır.
+Arayüz SQLite ile asla doğrudan konuşmaz — tüm okuma/yazmalar `db.py`'nin
+fonksiyonları üzerinden geçer, böylece doğrulama (tarih biçimi, pozitif
+tutar, işlem türü) çağıran ne olursa olsun (arayüz, CSV içe aktarma veya
+testler) tek bir yerde uygulanır.
 
-## Data layer (`db.py`)
+## Veri katmanı (`db.py`)
 
-SQLite via stdlib `sqlite3`, no ORM. Two tables:
+Stdlib `sqlite3` üzerinden SQLite, ORM yok. İki tablo:
 
-- `transactions(id, amount_minor, category, date, note, type)` — `type` is
-  constrained to `'gelir'` (income) or `'gider'` (expense) via a `CHECK`
-  constraint.
-- `settings(key, value)` — currently holds a single row for the monthly
-  budget (`monthly_budget_minor`).
+- `transactions(id, amount_minor, category, date, note, type)` — `type`
+  alanı bir `CHECK` kısıtıyla `'gelir'` (income) veya `'gider'` (expense)
+  ile sınırlıdır.
+- `settings(key, value)` — şu anda aylık bütçe için tek bir satır tutuyor
+  (`monthly_budget_minor`).
 
-Key design decisions:
+Önemli tasarım kararları:
 
-- **Amounts** are stored as positive integer minor units (kuruş = TL × 100)
-  to avoid floating-point rounding drift in sums. Sign is implied by `type`,
-  not by the amount.
-- **Dates** are stored as strict `YYYY-MM-DD` text and validated with a
-  regex before being passed to `date.fromisoformat` — `fromisoformat` alone
-  accepts other ISO-8601 variants (e.g. `20260701`, `2026-W27-3`) that would
-  silently break `strftime('%Y-%m', date)` grouping and lexicographic
-  date-range filtering. This validation is exercised directly by
-  `tests/test_db.py`.
-- **Aggregation** (`category_totals_for_month`, `monthly_totals`,
-  `monthly_net`, `get_month_spending`) is done in SQL via `strftime` and
-  `GROUP BY`/`SUM`, not in Python, so the UI just renders whatever the query
-  returns.
+- **Tutarlar**, toplamlarda kayan nokta yuvarlama sapmasını önlemek için
+  pozitif tam sayı küçük birim (kuruş = TL × 100) olarak saklanır. İşaret,
+  tutar tarafından değil `type` alanı tarafından belirlenir.
+- **Tarihler**, sıkı `YYYY-MM-DD` metin biçiminde saklanır ve
+  `date.fromisoformat`'a geçirilmeden önce bir regex ile doğrulanır —
+  `fromisoformat` tek başına, `strftime('%Y-%m', date)` gruplamasını ve
+  sözlük sıralı tarih aralığı filtrelemesini sessizce bozacak diğer
+  ISO-8601 varyantlarını (ör. `20260701`, `2026-W27-3`) kabul eder. Bu
+  doğrulama `tests/test_db.py` içinde doğrudan test edilir.
+- **Toplama** (`category_totals_for_month`, `monthly_totals`,
+  `monthly_net`, `get_month_spending`) Python'da değil, `strftime` ve
+  `GROUP BY`/`SUM` ile SQL tarafında yapılır; arayüz sorgunun döndürdüğünü
+  olduğu gibi gösterir.
 
-## CSV import/export (`csv_io.py`)
+## CSV içe/dışa aktarma (`csv_io.py`)
 
-Round-trips the same columns as the `transactions` table (minor units, not
-display strings, to stay lossless). Import is all-or-nothing: each row is
-inserted with `commit=False`; if any row fails validation, the whole
-transaction is rolled back and the error names the offending row.
+`transactions` tablosuyla aynı sütunları round-trip eder (görüntü metni
+değil, küçük birim değerler — kayıpsız olması için). İçe aktarma
+hep-ya-da-hiç mantığıyla çalışır: her satır `commit=False` ile eklenir;
+herhangi bir satır doğrulamadan geçmezse tüm işlem geri alınır (rollback)
+ve hata mesajı sorunlu satırı belirtir.
 
-## UI (`ui/`)
+## Arayüz (`ui/`)
 
-- `MainWindow` builds four regions: a filter bar (category/type/date
-  range/note search), a transaction table, a budget panel (set budget,
-  current-month spend vs. budget with overspend warning, net balance), and
-  a chart panel.
-- `TransactionDialog` is a modal `QDialog` used for both add and edit;
-  callers read the result via `get_transaction()`.
-- Charts are embedded matplotlib figures using
-  `matplotlib.backends.backend_qtagg.FigureCanvasQTAgg` with an explicit
-  `Figure` object (not the `pyplot` global state API), so multiple windows/
-  redraws don't leak global matplotlib state. Each refresh calls
-  `ax.clear()` then `canvas.draw_idle()`. Two chart modes share one canvas:
-  current-month category breakdown (bar) and monthly gelir/gider totals
-  over time (line, two series).
+- `MainWindow` dört bölge oluşturur: bir filtre çubuğu
+  (kategori/tür/tarih aralığı/not araması), bir işlem tablosu, bir bütçe
+  paneli (bütçe belirleme, mevcut ayın harcaması vs. bütçe ve aşım
+  uyarısı, net bakiye) ve bir grafik paneli.
+- `TransactionDialog`, hem ekleme hem düzenleme için kullanılan modal bir
+  `QDialog`'dur; çağıranlar sonucu `get_transaction()` ile okur.
+- Grafikler, global `pyplot` durum API'si yerine açık bir `Figure` nesnesi
+  kullanan `matplotlib.backends.backend_qtagg.FigureCanvasQTAgg` ile gömülü
+  matplotlib figürleridir; böylece birden fazla pencere/yeniden çizim
+  global matplotlib durumunu sızdırmaz. Her yenilemede `ax.clear()`
+  ardından `canvas.draw_idle()` çağrılır. İki grafik modu tek bir tuvali
+  paylaşır: mevcut ayın kategoriye göre dağılımı (çubuk) ve zaman içinde
+  aylık gelir/gider toplamları (çizgi, iki seri).
 
-## Tests (`tests/`)
+## Testler (`tests/`)
 
-Pytest, using in-memory SQLite (`db.connect(":memory:")`) for isolation —
-no test touches the real `harcama.db`. Split by concern:
-`test_db.py` (CRUD + validation), `test_aggregation.py` (grouping/totals
-correctness, including mixed income/expense), `test_csv_io.py` (export/
-import round-trip and rollback-on-bad-row behavior).
+Pytest, izolasyon için bellek-içi SQLite (`db.connect(":memory:")`)
+kullanır — hiçbir test gerçek `harcama.db`'ye dokunmaz. Konuya göre
+ayrılmıştır: `test_db.py` (CRUD + doğrulama), `test_aggregation.py`
+(gruplama/toplam doğruluğu, karışık gelir/gider dahil), `test_csv_io.py`
+(dışa/içe aktarma round-trip ve hatalı satırda geri alma davranışı).

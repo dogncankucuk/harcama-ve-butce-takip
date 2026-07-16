@@ -1,67 +1,74 @@
 # Harcama & Bütçe Takip
 
-A desktop personal finance / budget tracker built with Python and PySide6 (Qt).
-Record income (`gelir`) and expense (`gider`) transactions, filter and search
-them, set a monthly budget with overspend warnings, and view spending via
-embedded matplotlib charts. Data is stored locally in a SQLite database
-(`harcama.db`), created automatically next to `main.py` on first run.
+Python ve PySide6 (Qt) ile geliştirilmiş masaüstü kişisel finans / bütçe
+takip uygulaması. Gelir (`gelir`) ve gider (`gider`) işlemlerini kaydedin,
+filtreleyip arayın, aylık bütçe limiti belirleyip aşım uyarısı alın ve
+harcamalarınızı gömülü matplotlib grafikleriyle görüntüleyin. Veriler,
+ilk çalıştırmada `main.py` ile aynı klasörde otomatik oluşturulan yerel bir
+SQLite veritabanında (`harcama.db`) saklanır.
 
-## Tech stack
+## Teknoloji yığını
 
 - Python 3.14
-- [PySide6](https://doc.qt.io/qtforpython/) 6.11.1 — Qt GUI
-- [matplotlib](https://matplotlib.org/) 3.11.0 — embedded charts (`backend_qtagg`)
-- SQLite via the stdlib `sqlite3` module — no ORM
-- [pytest](https://docs.pytest.org/) — test suite
+- [PySide6](https://doc.qt.io/qtforpython/) 6.11.1 — Qt arayüzü
+- [matplotlib](https://matplotlib.org/) 3.11.0 — gömülü grafikler (`backend_qtagg`)
+- SQLite, stdlib `sqlite3` modülü üzerinden — ORM kullanılmıyor
+- [pytest](https://docs.pytest.org/) — test paketi
 
-## Setup
+## Kurulum
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Running the app
+## Uygulamayı çalıştırma
 
 ```bash
 python main.py
 ```
 
-This opens (or creates) `harcama.db` in the project directory and launches
-the main window.
+Bu komut proje klasöründe `harcama.db` dosyasını açar (yoksa oluşturur) ve
+ana pencereyi başlatır.
 
-## Running tests
+## Testleri çalıştırma
 
 ```bash
 pytest tests/ -v
 ```
 
-30 tests cover CRUD operations, strict date validation, budget boundary
-logic, mixed income/expense aggregation, filtering, and CSV round-trip /
-atomicity.
+30 test; CRUD işlemlerini, sıkı tarih doğrulamasını, bütçe sınır mantığını,
+karışık gelir/gider toplamalarını, filtrelemeyi ve CSV round-trip/atomiklik
+davranışını kapsar.
 
-## Features
+## Özellikler
 
-- Add, edit, and delete transactions (amount, category, date, note, type).
-- Transaction type: `gelir` (income) or `gider` (expense).
-- Filter/search by category, date range, free-text note search, and type.
-- Set a monthly budget; see current-month spend vs. budget with an overspend
-  warning, and the net balance (gelir − gider) for the month.
-- Charts (matplotlib, embedded in the Qt window):
-  - Current month's expense breakdown by category (bar chart).
-  - Monthly totals over time, income and expense as two series (line chart).
-- CSV export and import. Import is all-or-nothing: if any row fails
-  validation, nothing from that file is persisted.
+- İşlem ekleme, düzenleme ve silme (tutar, kategori, tarih, not, tür).
+- İşlem türü: `gelir` (income) veya `gider` (expense).
+- Kategori, tarih aralığı, serbest metin not araması ve türe göre
+  filtreleme/arama.
+- Aylık bütçe limiti belirleme; mevcut ayın harcamasını bütçeyle
+  karşılaştırıp aşım uyarısı gösterme, ayrıca ayın net bakiyesi
+  (gelir − gider).
+- Grafikler (matplotlib, Qt penceresine gömülü):
+  - Mevcut ayın kategoriye göre gider dağılımı (çubuk grafik).
+  - Zaman içinde aylık toplamlar, gelir ve gider ayrı iki seri olarak
+    (çizgi grafik).
+- CSV dışa ve içe aktarma. İçe aktarma hep-ya-da-hiç mantığıyla çalışır:
+  herhangi bir satır doğrulamadan geçmezse, o dosyadan hiçbir şey
+  kaydedilmez.
 
-### Out of scope (intentionally)
+### Kapsam dışı (bilinçli olarak)
 
-Recurring transactions, multiple accounts, and savings goals are not
-supported — these were explicitly excluded from this project's scope.
+Tekrarlayan işlemler, çoklu hesap ve tasarruf hedefleri desteklenmiyor —
+bunlar bu projenin kapsamından açıkça hariç tutulmuştur.
 
-## Data storage notes
+## Veri saklama notları
 
-- Amounts are stored as positive integers in minor units (kuruş = TL × 100)
-  to avoid floating-point rounding drift; the sign is implied by `type`.
-- Dates are stored as strict ISO-8601 text (`YYYY-MM-DD`) so that
-  lexicographic ordering matches chronological ordering and
-  `strftime('%Y-%m', date)` grouping works correctly. Other ISO date
-  variants (e.g. `20260701`, week-dates) are rejected at insert/update time.
+- Tutarlar, kayan nokta yuvarlama sapmalarını önlemek için pozitif tam
+  sayı olarak küçük birimde (kuruş = TL × 100) saklanır; işaret (artı/eksi)
+  `type` alanıyla ifade edilir.
+- Tarihler, sözlük sırasının kronolojik sırayla eşleşmesi ve
+  `strftime('%Y-%m', date)` gruplamasının doğru çalışması için sıkı
+  ISO-8601 metin biçiminde (`YYYY-MM-DD`) saklanır. Diğer ISO tarih
+  varyantları (ör. `20260701`, hafta tarihi biçimi) ekleme/güncelleme
+  sırasında reddedilir.
